@@ -17,6 +17,7 @@ import {
 } from 'react-native';
 import Qs from 'qs';
 import debounce from 'lodash.debounce';
+import filter from 'lodash/filter';
 
 const WINDOW = Dimensions.get('window');
 
@@ -155,7 +156,7 @@ export default class GooglePlacesAutocomplete extends Component {
 
   _abortRequests = () => {
     this._requests.map(i => i.abort());
-    this._requests = [];
+    // this._requests = [];
   }
 
   /**
@@ -475,10 +476,26 @@ export default class GooglePlacesAutocomplete extends Component {
               const results = this.props.nearbyPlacesAPI === 'GoogleReverseGeocoding'
                 ? this._filterResultsByTypes(responseJSON.predictions, this.props.filterReverseGeocodingByTypes)
                 : responseJSON.predictions;
+                let matchingRows = [];
 
-              this._results = results;
+                if(this._results.length > 0) {
+                  matchingRows = filter(this._results, function(o) { return o.structured_formatting.main_text.startsWith(text); });  
+                }
+
+                const udjustedResults = results.length > 0 ? results : matchingRows;
+                if (udjustedResults.length === 0) {
+                  const onChangeText = this.props
+                  && this.props.textInputProps
+                  && this.props.textInputProps.onChangeText;
+  
+                  if (onChangeText) {
+                    onChangeText(text);
+                  }
+                }
+
+                this._results = udjustedResults;
               this.setState({
-                dataSource: this.buildRowsFromResults(results),
+                dataSource: this.buildRowsFromResults(udjustedResults),
               });
             }
           }
@@ -521,7 +538,7 @@ export default class GooglePlacesAutocomplete extends Component {
 
     this.setState({
       text: text,
-      listViewDisplayed: this._isMounted || this.props.autoFocus,
+      listViewDisplayed: true,
     });
   }
 
@@ -533,7 +550,7 @@ export default class GooglePlacesAutocomplete extends Component {
       && this.props.textInputProps.onChangeText;
 
     if (onChangeText) {
-      onChangeText(text);
+      onChangeText(undefined);
     }
   }
 
@@ -676,7 +693,7 @@ export default class GooglePlacesAutocomplete extends Component {
       Math.random().toString(36).substr(2, 10)
     );
 
-    if ((this.state.text !== '' || this.props.predefinedPlaces.length || this.props.currentLocation === true) && this.state.listViewDisplayed === true) {
+    if ((this.state.text !== '' || this.props.predefinedPlaces.length || this.props.currentLocation === true) && true) {
       return (
         <FlatList
           scrollEnabled={!this.props.disableScroll}
